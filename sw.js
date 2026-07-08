@@ -1,4 +1,4 @@
-const CACHE = 'bar-erp-v1';
+const CACHE = 'bar-erp-v2';
 const ASSETS = ['./', './index.html', './v2.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

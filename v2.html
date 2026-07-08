@@ -592,7 +592,7 @@ function renderFin(){
   const et=document.getElementById('expTable');
   const exps=[...S.expenses].sort((a,b)=>b.id-a.id).slice(0,15);
   et.innerHTML=`<tr><th>Огноо</th><th>Ангилал</th><th>Тайлбар</th><th class="num">Дүн</th><th></th></tr>`+
-    (exps.map(e=>`<tr><td>${e.date}</td><td>${esc(e.cat)}</td><td>${esc(e.note||'')}</td><td class="num neg">${fmt(e.amt)}</td>
+    (exps.map(e=>`<tr><td>${esc(e.date)}</td><td>${esc(e.cat)}</td><td>${esc(e.note||'')}</td><td class="num neg">${fmt(e.amt)}</td>
       <td style="text-align:right"><button class="btn sm danger" onclick="delExpense(${e.id})">✕</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Зарлага алга</td></tr>');
   const st=document.getElementById('salesTable');
   const ss=[...S.sales].sort((a,b)=>b.id-a.id).slice(0,15);
