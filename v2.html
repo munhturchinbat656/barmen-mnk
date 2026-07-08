@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bar ERP v2 — Барменд ба Санхүү</title>
+<meta name="theme-color" content="#1e1b4b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#f1f3f9; --panel:#ffffff; --panel2:#f6f7fb; --border:#e4e7f0;
+  --text:#1e2333; --muted:#6b7288; --accent:#7c3aed; --accent2:#6d28d9;
+  --green:#16a34a; --red:#dc2626; --blue:#2563eb;
+  --side1:#312e81; --side2:#1e1b4b;
+  --shadow:0 1px 3px rgba(30,35,51,.07),0 4px 14px rgba(30,35,51,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+button{font-family:inherit;cursor:pointer;border:none;border-radius:10px}
+input,select,textarea{font-family:inherit;background:#fff;border:1.5px solid var(--border);color:var(--text);border-radius:10px;padding:9px 12px;font-size:14px;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+/* ===== sidebar ===== */
+.sidebar{width:225px;min-height:100vh;background:linear-gradient(180deg,var(--side1),var(--side2));color:#e6e4ff;display:flex;flex-direction:column;padding:20px 12px;position:sticky;top:0;height:100vh;flex-shrink:0}
+.logo{font-size:20px;font-weight:800;padding:0 12px 20px;color:#fff;letter-spacing:.3px}
+.logo small{display:block;font-size:11px;font-weight:500;color:#a5a1d8;margin-top:2px}
+nav{display:flex;flex-direction:column;gap:4px}
+nav button{background:transparent;color:#b9b5e6;padding:11px 14px;font-size:14px;font-weight:600;text-align:left;border-radius:10px;display:block;width:100%}
+nav button.active{background:rgba(255,255,255,.14);color:#fff;box-shadow:inset 3px 0 0 var(--accent)}
+nav button:hover:not(.active){background:rgba(255,255,255,.07);color:#fff}
+#shiftBadge{margin-top:auto;font-size:12.5px;color:#b9b5e6;display:flex;flex-direction:column;gap:8px;padding:14px 12px;background:rgba(255,255,255,.06);border-radius:12px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--red);display:inline-block;margin-right:6px}
+.dot.on{background:#4ade80}
+/* ===== content ===== */
+.content{flex:1;min-width:0}
+main{padding:24px;max-width:1400px}
+.page{display:none}.page.active{display:block}
+h2{font-size:20px;margin-bottom:16px;font-weight:700}
+h3{font-size:12.5px;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+.btn{background:var(--accent);color:#fff;padding:10px 18px;font-weight:700;font-size:14px}
+.btn:hover{background:var(--accent2)}
+.btn.ghost{background:var(--panel2);color:var(--text);border:1.5px solid var(--border)}
+.btn.danger{background:var(--red);color:#fff}
+.btn.green{background:var(--green);color:#fff}
+.btn.sm{padding:5px 11px;font-size:12.5px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;color:var(--muted);font-weight:700;padding:8px 10px;border-bottom:1.5px solid var(--border);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+td{padding:10px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+th.num{text-align:right}
+.tbl-wrap{overflow-x:auto}
+/* ===== POS ===== */
+.pos-layout{display:grid;grid-template-columns:1fr 350px;gap:18px;align-items:start}
+.cats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.cats button{background:#fff;color:var(--muted);padding:8px 16px;font-size:13.5px;font-weight:600;border:1.5px solid var(--border);border-radius:20px}
+.cats button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
+.prod{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:14px;text-align:left;color:var(--text);box-shadow:var(--shadow);transition:transform .1s,border-color .1s}
+.prod:hover{border-color:var(--accent);transform:translateY(-2px)}
+.prod .p-cat{font-size:10.5px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.prod .p-name{font-weight:600;font-size:14px;margin-bottom:8px;line-height:1.3}
+.prod .p-price{color:var(--text);font-weight:800;font-size:16px}
+.prod .p-stock{font-size:11.5px;color:var(--muted);margin-top:4px}
+.prod .p-stock.low{color:var(--red);font-weight:600}
+.prod:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.cart{position:sticky;top:24px;padding:0;overflow:hidden}
+.cart-head{background:linear-gradient(135deg,var(--side1),var(--accent));color:#fff;padding:14px 18px;font-weight:700;font-size:15px}
+.cart-body{padding:16px 18px}
+.cart-items{max-height:40vh;overflow-y:auto;margin-bottom:10px}
+.ci{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}
+.ci-name{flex:1;font-size:13.5px;font-weight:500}
+.ci-qty{display:flex;align-items:center;gap:6px}
+.ci-qty button{width:26px;height:26px;background:var(--panel2);color:var(--text);border:1.5px solid var(--border);font-size:15px;border-radius:8px}
+.ci-sum{width:84px;text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px;font-weight:600}
+.cart-total{display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding:14px 0 10px;border-top:2px solid var(--text)}
+.pay-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.empty{color:var(--muted);text-align:center;padding:28px 0;font-size:13.5px}
+/* ===== stats ===== */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:14px;margin-bottom:18px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow);border-top:3px solid var(--accent)}
+.stat .s-label{font-size:12px;color:var(--muted);margin-bottom:7px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.stat .s-value{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.form-row{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.form-row>*{flex:1;min-width:120px}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;font-weight:600}
+.pos-neg{color:var(--green)} .neg{color:var(--red)}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700}
+.badge.cash{background:#dcfce7;color:#15803d}.badge.card{background:#dbeafe;color:#1d4ed8}
+/* ===== chart ===== */
+.chart{display:flex;align-items:flex-end;gap:7px;height:160px;padding-top:8px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.bar{width:100%;max-width:44px;background:linear-gradient(180deg,var(--accent),var(--side1));border-radius:6px 6px 0 0;min-height:2px}
+.bar-lbl{font-size:10.5px;color:var(--muted);white-space:nowrap}
+/* ===== modal ===== */
+.overlay{display:none;position:fixed;inset:0;background:rgba(30,27,75,.45);z-index:100;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)}
+.overlay.open{display:flex}
+.modal{background:var(--panel);border-radius:18px;padding:22px;width:100%;max-width:430px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(30,27,75,.3)}
+.modal h2{margin-bottom:16px;font-size:17px}
+/* ===== receipt ===== */
+#receiptBody{background:#fff;color:#111;padding:18px;border-radius:10px;font-family:'Courier New',monospace;font-size:13px;line-height:1.5;border:1px dashed #ccc}
+#receiptBody .r-line{display:flex;justify-content:space-between}
+#receiptBody hr{border:none;border-top:1px dashed #999;margin:8px 0}
+@media print{
+  body>*{display:none!important}
+  #receiptOverlay{display:flex!important;position:static;background:#fff;padding:0;backdrop-filter:none}
+  #receiptOverlay .modal{border:none;box-shadow:none;max-width:100%}
+  #receiptOverlay .no-print{display:none!important}
+  #receiptBody{padding:0;border:none}
+}
+@media(max-width:960px){
+  body{flex-direction:column}
+  .sidebar{width:100%;height:auto;min-height:0;position:static;flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px;padding:12px}
+  .logo{padding:0 8px}
+  .logo small{display:none}
+  nav{flex-direction:row;flex-wrap:wrap;gap:6px}
+  nav button{width:auto;padding:8px 13px}
+  nav button.active{box-shadow:none;background:var(--accent)}
+  #shiftBadge{margin-top:0;margin-left:auto;flex-direction:row;align-items:center}
+  .pos-layout,.grid2{grid-template-columns:1fr}
+  .cart{position:static}
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">🍸 Bar ERP<small>Борлуулалт · Агуулах · Санхүү</small></div>
+  <nav id="nav">
+    <button data-page="pos" class="active">🍺 Борлуулалт (POS)</button>
+    <button data-page="inv">📦 Агуулах</button>
+    <button data-page="fin">💰 Санхүү</button>
+    <button data-page="rep">📊 Тайлан</button>
+    <button data-page="set">⚙️ Тохиргоо</button>
+  </nav>
+  <div id="shiftBadge"></div>
+</aside>
+
+<div class="content">
+<main>
+
+<!-- ============ POS ============ -->
+<section class="page active" id="page-pos">
+  <div class="pos-layout">
+    <div>
+      <div class="cats" id="catBar"></div>
+      <div class="prod-grid" id="prodGrid"></div>
+    </div>
+    <div class="card cart">
+      <div class="cart-head">🧾 Захиалга</div>
+      <div class="cart-body">
+        <div class="cart-items" id="cartItems"></div>
+        <div class="form-row">
+          <div><label>Ширээ / тэмдэглэл</label><input id="saleNote" placeholder="Ширээ 4"></div>
+          <div><label>Хөнгөлөлт %</label><input id="saleDisc" type="number" min="0" max="100" value="0"></div>
+        </div>
+        <div class="cart-total"><span>Нийт</span><span id="cartTotal">0₮</span></div>
+        <div class="pay-row">
+          <button class="btn green" onclick="checkout('cash')">💵 Бэлэн</button>
+          <button class="btn" onclick="checkout('card')" style="background:var(--blue)">💳 Карт</button>
+        </div>
+        <button class="btn ghost" style="width:100%;margin-top:8px" onclick="clearCart()">Цэвэрлэх</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INVENTORY ============ -->
+<section class="page" id="page-inv">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <h2 style="margin:0">📦 Барааны үлдэгдэл</h2>
+    <button class="btn" onclick="openProdModal()">+ Бараа нэмэх</button>
+  </div>
+  <div class="card tbl-wrap"><table id="invTable"></table></div>
+</section>
+
+<!-- ============ FINANCE ============ -->
+<section class="page" id="page-fin">
+  <h2>💰 Санхүү — өнөөдөр</h2>
+  <div class="stats" id="finStats"></div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Зарлага бүртгэх</h3>
+      <div class="form-row">
+        <div><label>Огноо</label><input type="date" id="expDate"></div>
+        <div><label>Ангилал</label>
+          <select id="expCat">
+            <option>Бараа татан авалт</option><option>Цалин</option><option>Түрээс</option>
+            <option>Цахилгаан, ус</option><option>Маркетинг</option><option>Бусад</option>
+          </select></div>
+      </div>
+      <div class="form-row">
+        <div><label>Дүн ₮</label><input type="number" id="expAmt" min="0" placeholder="0"></div>
+        <div><label>Тайлбар</label><input id="expNote" placeholder="жиш: пиво нийлүүлэгч"></div>
+      </div>
+      <button class="btn" onclick="addExpense()">Хадгалах</button>
+      <h3 style="margin-top:22px">Сүүлийн зарлагууд</h3>
+      <div class="tbl-wrap"><table id="expTable"></table></div>
+    </div>
+    <div class="card">
+      <h3>Сүүлийн борлуулалтууд</h3>
+      <div class="tbl-wrap"><table id="salesTable"></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REPORTS ============ -->
+<section class="page" id="page-rep">
+  <h2>📊 Тайлан</h2>
+  <div class="card" style="margin-bottom:18px">
+    <div class="form-row" style="align-items:flex-end;margin-bottom:0">
+      <div><label>Эхлэх огноо</label><input type="date" id="repFrom"></div>
+      <div><label>Дуусах огноо</label><input type="date" id="repTo"></div>
+      <div style="flex:0"><button class="btn" onclick="renderReports()">Харах</button></div>
+      <div style="flex:0"><button class="btn ghost" onclick="exportCSV()">⬇ CSV татах</button></div>
+    </div>
+  </div>
+  <div class="stats" id="repStats"></div>
+  <div class="grid2">
+    <div class="card"><h3>Өдрөөр орлого</h3><div class="chart" id="repChart"></div></div>
+    <div class="card"><h3>Шилдэг бараа</h3><div class="tbl-wrap"><table id="topTable"></table></div></div>
+  </div>
+  <div class="card" style="margin-top:18px"><h3>Ээлжийн түүх</h3><div class="tbl-wrap"><table id="shiftTable"></table></div></div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section class="page" id="page-set">
+  <h2>⚙️ Тохиргоо</h2>
+  <div class="card" style="max-width:480px">
+    <div class="form-row"><div><label>Барын нэр (баримт дээр гарна)</label><input id="setName"></div></div>
+    <div class="form-row">
+      <div><label>Бармены шинэ ПИН</label><input id="setPinB" maxlength="8" placeholder="солих бол бичнэ"></div>
+      <div><label>Менежерийн шинэ ПИН</label><input id="setPinM" maxlength="8" placeholder="солих бол бичнэ"></div>
+    </div>
+    <button class="btn" onclick="saveSettings()">Хадгалах</button>
+    <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+    <h3>Өгөгдөл</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn ghost" onclick="exportJSON()">⬇ Нөөцлөх (JSON)</button>
+      <button class="btn ghost" onclick="document.getElementById('impFile').click()">⬆ Сэргээх</button>
+      <button class="btn danger" onclick="resetData()">Бүгдийг устгах</button>
+    </div>
+    <input type="file" id="impFile" accept=".json" style="display:none" onchange="importJSON(this)">
+    <p style="font-size:12.5px;color:var(--muted);margin-top:12px">Өгөгдөл энэ хөтчийн localStorage-д хадгалагдана. Хуучин (харанхуй) загвартай нэг өгөгдөл хуваалцана — аль нэгийг нь ашиглаж болно.</p>
+  </div>
+</section>
+
+</main>
+</div>
+
+<!-- product modal -->
+<div class="overlay" id="prodOverlay">
+  <div class="modal">
+    <h2 id="prodModalTitle">Бараа нэмэх</h2>
+    <input type="hidden" id="pId">
+    <div class="form-row"><div><label>Нэр</label><input id="pName"></div></div>
+    <div class="form-row">
+      <div><label>Ангилал</label><input id="pCat" list="catList" placeholder="Шар айраг"></div>
+      <datalist id="catList"></datalist>
+      <div><label>Нэгж</label><input id="pUnit" placeholder="ш / хундага / 500мл"></div>
+    </div>
+    <div class="form-row">
+      <div><label>Зарах үнэ ₮</label><input type="number" id="pPrice" min="0"></div>
+      <div><label>Өртөг ₮</label><input type="number" id="pCost" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div><label>Үлдэгдэл</label><input type="number" id="pStock" min="0"></div>
+      <div><label>Доод хязгаар (анхааруулга)</label><input type="number" id="pMin" min="0" value="5"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px">
+      <button class="btn ghost" onclick="closeOverlay('prodOverlay')">Болих</button>
+      <button class="btn" onclick="saveProduct()">Хадгалах</button>
+    </div>
+  </div>
+</div>
+
+<!-- shift modal -->
+<div class="overlay" id="shiftOverlay">
+  <div class="modal">
+    <h2 id="shiftModalTitle"></h2>
+    <div id="shiftModalBody"></div>
+  </div>
+</div>
+
+<!-- receipt modal -->
+<div class="overlay" id="receiptOverlay">
+  <div class="modal">
+    <div id="receiptBody"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px" class="no-print">
+      <button class="btn ghost" onclick="closeOverlay('receiptOverlay')">Хаах</button>
+      <button class="btn" onclick="window.print()">🖨 Хэвлэх</button>
+    </div>
+  </div>
+</div>
+
+<!-- login -->
+<div class="overlay" id="loginOverlay" style="background:rgba(30,27,75,.96)">
+  <div class="modal" style="max-width:340px">
+    <h2 style="text-align:center">🍸 Bar ERP — Нэвтрэх</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <button class="btn" id="rbBarmen" onclick="selectRole('barmen')">🍺 Бармен</button>
+      <button class="btn ghost" id="rbManager" onclick="selectRole('manager')">👔 Менежер</button>
+    </div>
+    <label>ПИН код</label>
+    <input type="password" id="loginPin" inputmode="numeric" placeholder="••••" style="text-align:center;font-size:18px;letter-spacing:6px" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn" style="width:100%;margin-top:12px" onclick="doLogin()">Нэвтрэх</button>
+    <p style="font-size:12px;color:var(--muted);margin-top:12px;text-align:center">Анхны ПИН — Бармен: 1111 · Менежер: 0000<br>Менежер "Тохиргоо" хэсгээс солино.</p>
+  </div>
+</div>
+
+<script>
+/* ================= state ================= */
+const LS_KEY='barErpData';
+const seed={
+  settings:{name:'Миний бар'},
+  seq:{prod:12,sale:0,exp:0,shift:0},
+  shift:null,
+  shifts:[],
+  expenses:[],
+  sales:[],
+  products:[
+    {id:1,name:'Сэнгүр шар айраг',cat:'Шар айраг',unit:'500мл',price:8000,cost:4500,stock:48,min:12},
+    {id:2,name:'Tiger шар айраг',cat:'Шар айраг',unit:'330мл',price:9000,cost:5200,stock:36,min:12},
+    {id:3,name:'Архи (хундага)',cat:'Хатуу',unit:'хундага',price:6000,cost:2800,stock:60,min:15},
+    {id:4,name:'Jameson (хундага)',cat:'Хатуу',unit:'хундага',price:18000,cost:9500,stock:25,min:8},
+    {id:5,name:"Jack Daniel's (хундага)",cat:'Хатуу',unit:'хундага',price:25000,cost:13000,stock:20,min:8},
+    {id:6,name:'Мохито',cat:'Коктейль',unit:'ш',price:16000,cost:6500,stock:30,min:5},
+    {id:7,name:'Маргарита',cat:'Коктейль',unit:'ш',price:18000,cost:7200,stock:30,min:5},
+    {id:8,name:'Кола',cat:'Ундаа',unit:'330мл',price:4000,cost:1800,stock:50,min:15},
+    {id:9,name:'Тоник',cat:'Ундаа',unit:'330мл',price:5000,cost:2200,stock:40,min:15},
+    {id:10,name:'Шарсан самар',cat:'Зууш',unit:'ш',price:6000,cost:2500,stock:25,min:6},
+    {id:11,name:'Чипс',cat:'Зууш',unit:'ш',price:5000,cost:2000,stock:30,min:6},
+    {id:12,name:'Улаан дарс (хундага)',cat:'Дарс',unit:'хундага',price:14000,cost:7000,stock:22,min:6}
+  ]
+};
+let S=load();
+function load(){try{const d=JSON.parse(localStorage.getItem(LS_KEY));if(d&&d.products)return d;}catch(e){}return JSON.parse(JSON.stringify(seed));}
+function save(){localStorage.setItem(LS_KEY,JSON.stringify(S));}
+
+/* ================= helpers ================= */
+const fmt=n=>Math.round(n).toLocaleString('en-US')+'₮';
+const todayStr=()=>new Date().toISOString().slice(0,10);
+const dstr=ts=>new Date(ts).toISOString().slice(0,10);
+const tstr=ts=>{const d=new Date(ts);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');};
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function closeOverlay(id){document.getElementById(id).classList.remove('open');}
+
+/* ================= roles ================= */
+const PERMS={barmen:['pos','inv'],manager:['pos','inv','fin','rep','set']};
+let role=sessionStorage.getItem('barErpRole')||null;
+let selRole='barmen';
+function pins(){if(!S.settings.pins)S.settings.pins={barmen:'1111',manager:'0000'};return S.settings.pins;}
+function selectRole(r){
+  selRole=r;
+  document.getElementById('rbBarmen').className=r==='barmen'?'btn':'btn ghost';
+  document.getElementById('rbManager').className=r==='manager'?'btn':'btn ghost';
+  document.getElementById('loginPin').focus();
+}
+function doLogin(){
+  const pin=document.getElementById('loginPin').value;
+  if(pin!==pins()[selRole]){alert('ПИН код буруу байна');return;}
+  role=selRole;sessionStorage.setItem('barErpRole',role);
+  document.getElementById('loginPin').value='';
+  closeOverlay('loginOverlay');applyRole();renderAll();
+}
+function logout(){sessionStorage.removeItem('barErpRole');location.reload();}
+function applyRole(){
+  const allowed=PERMS[role]||[];
+  document.querySelectorAll('#nav button').forEach(b=>{b.style.display=allowed.includes(b.dataset.page)?'':'none';});
+  const act=document.querySelector('#nav button.active');
+  if(!act||!allowed.includes(act.dataset.page)){
+    document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('active',x.dataset.page==='pos'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-pos'));
+  }
+}
+
+/* ================= nav ================= */
+document.getElementById('nav').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(!role||!(PERMS[role]||[]).includes(b.dataset.page))return;
+  document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('active',x===b));
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+b.dataset.page));
+  renderAll();
+});
+
+/* ================= POS ================= */
+let cart=[],activeCat='Бүгд';
+function cats(){return ['Бүгд',...new Set(S.products.map(p=>p.cat))];}
+function renderPOS(){
+  const cb=document.getElementById('catBar');
+  cb.innerHTML=cats().map(c=>`<button class="${c===activeCat?'active':''}" onclick="setCat('${esc(c)}')">${esc(c)}</button>`).join('');
+  const grid=document.getElementById('prodGrid');
+  const list=S.products.filter(p=>activeCat==='Бүгд'||p.cat===activeCat);
+  grid.innerHTML=list.map(p=>`
+    <button class="prod" ${p.stock<=0?'disabled':''} onclick="addToCart(${p.id})">
+      <div class="p-cat">${esc(p.cat)}</div>
+      <div class="p-name">${esc(p.name)}</div>
+      <div class="p-price">${fmt(p.price)}</div>
+      <div class="p-stock ${p.stock<=p.min?'low':''}">Үлд: ${p.stock} ${esc(p.unit||'')}</div>
+    </button>`).join('')||'<div class="empty">Бараа алга</div>';
+  renderCart();
+}
+function setCat(c){activeCat=c;renderPOS();}
+function addToCart(pid){
+  const p=S.products.find(x=>x.id===pid);if(!p)return;
+  const line=cart.find(l=>l.pid===pid);
+  const inCart=line?line.qty:0;
+  if(inCart>=p.stock){alert('Үлдэгдэл хүрэлцэхгүй!');return;}
+  if(line)line.qty++;else cart.push({pid,qty:1});
+  renderCart();
+}
+function chQty(pid,d){
+  const line=cart.find(l=>l.pid===pid);if(!line)return;
+  const p=S.products.find(x=>x.id===pid);
+  line.qty+=d;
+  if(line.qty<=0)cart=cart.filter(l=>l!==line);
+  else if(p&&line.qty>p.stock){line.qty=p.stock;alert('Үлдэгдэл хүрэлцэхгүй!');}
+  renderCart();
+}
+function cartTotal(){
+  const disc=Math.min(100,Math.max(0,+document.getElementById('saleDisc').value||0));
+  const sub=cart.reduce((s,l)=>{const p=S.products.find(x=>x.id===l.pid);return s+(p?p.price*l.qty:0);},0);
+  return Math.round(sub*(1-disc/100));
+}
+function renderCart(){
+  const el=document.getElementById('cartItems');
+  el.innerHTML=cart.map(l=>{
+    const p=S.products.find(x=>x.id===l.pid);if(!p)return'';
+    return `<div class="ci">
+      <div class="ci-name">${esc(p.name)}</div>
+      <div class="ci-qty">
+        <button onclick="chQty(${p.id},-1)">−</button><span>${l.qty}</span><button onclick="chQty(${p.id},1)">+</button>
+      </div>
+      <div class="ci-sum">${fmt(p.price*l.qty)}</div>
+    </div>`;
+  }).join('')||'<div class="empty">Бараа сонгоно уу</div>';
+  document.getElementById('cartTotal').textContent=fmt(cartTotal());
+}
+document.getElementById('saleDisc').addEventListener('input',renderCart);
+function clearCart(){cart=[];document.getElementById('saleNote').value='';document.getElementById('saleDisc').value=0;renderCart();}
+function checkout(method){
+  if(!cart.length){alert('Захиалга хоосон байна');return;}
+  if(!S.shift){alert('Эхлээд ээлж нээнэ үү! (зүүн доод буланд)');return;}
+  const disc=Math.min(100,Math.max(0,+document.getElementById('saleDisc').value||0));
+  const items=cart.map(l=>{const p=S.products.find(x=>x.id===l.pid);return{pid:p.id,name:p.name,price:p.price,cost:p.cost,qty:l.qty};});
+  const sale={id:++S.seq.sale,ts:Date.now(),items,disc,total:cartTotal(),method,note:document.getElementById('saleNote').value.trim(),shiftId:S.shift.id};
+  items.forEach(i=>{const p=S.products.find(x=>x.id===i.pid);if(p)p.stock=Math.max(0,p.stock-i.qty);});
+  S.sales.push(sale);save();
+  showReceipt(sale);clearCart();renderAll();
+}
+function voidSale(id){
+  if(!confirm('Энэ борлуулалтыг цуцлах уу? Барааны үлдэгдэл буцаж нэмэгдэнэ.'))return;
+  const i=S.sales.findIndex(s=>s.id===id);if(i<0)return;
+  S.sales[i].items.forEach(it=>{const p=S.products.find(x=>x.id===it.pid);if(p)p.stock+=it.qty;});
+  S.sales.splice(i,1);save();renderAll();
+}
+function showReceipt(sale){
+  const b=document.getElementById('receiptBody');
+  b.innerHTML=`
+    <div style="text-align:center;font-weight:700">${esc(S.settings.name)}</div>
+    <div style="text-align:center;font-size:11.5px">${dstr(sale.ts)} ${tstr(sale.ts)} · Баримт №${sale.id}${sale.note?' · '+esc(sale.note):''}</div>
+    <hr>
+    ${sale.items.map(i=>`<div class="r-line"><span>${esc(i.name)} ×${i.qty}</span><span>${fmt(i.price*i.qty)}</span></div>`).join('')}
+    <hr>
+    ${sale.disc?`<div class="r-line"><span>Хөнгөлөлт</span><span>−${sale.disc}%</span></div>`:''}
+    <div class="r-line" style="font-weight:700;font-size:15px"><span>НИЙТ</span><span>${fmt(sale.total)}</span></div>
+    <div class="r-line"><span>Төлбөр</span><span>${sale.method==='cash'?'Бэлэн':'Карт'}</span></div>
+    <hr><div style="text-align:center">Баярлалаа! 🍻</div>`;
+  document.getElementById('receiptOverlay').classList.add('open');
+}
+
+/* ================= shift ================= */
+function renderShift(){
+  const el=document.getElementById('shiftBadge');
+  const who=role?`<span style="display:flex;align-items:center;justify-content:space-between;gap:8px">${role==='manager'?'👔 Менежер':'🍺 Бармен'} <button class="btn sm ghost" onclick="logout()">Гарах</button></span>`:'';
+  if(S.shift){
+    el.innerHTML=`${who}<span><span class="dot on"></span>Ээлж нээлттэй (${tstr(S.shift.openedAt)}-с)</span> <button class="btn sm danger" onclick="openShiftModal()">Ээлж хаах</button>`;
+  }else{
+    el.innerHTML=`${who}<span><span class="dot"></span>Ээлж хаалттай</span> <button class="btn sm green" onclick="openShiftModal()">Ээлж нээх</button>`;
+  }
+}
+function shiftCash(sh){return S.sales.filter(s=>s.shiftId===sh.id&&s.method==='cash').reduce((a,s)=>a+s.total,0);}
+function shiftCard(sh){return S.sales.filter(s=>s.shiftId===sh.id&&s.method==='card').reduce((a,s)=>a+s.total,0);}
+function openShiftModal(){
+  const t=document.getElementById('shiftModalTitle'),b=document.getElementById('shiftModalBody');
+  if(!S.shift){
+    t.textContent='Ээлж нээх';
+    b.innerHTML=`<div class="form-row"><div><label>Кассанд байгаа эхний бэлэн мөнгө ₮</label><input type="number" id="shStart" min="0" value="0"></div></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn ghost" onclick="closeOverlay('shiftOverlay')">Болих</button>
+        <button class="btn green" onclick="openShift()">Нээх</button></div>`;
+  }else{
+    const cash=shiftCash(S.shift),card=shiftCard(S.shift),exp=S.shift.startCash+cash;
+    t.textContent='Ээлж хаах';
+    b.innerHTML=`
+      <table style="margin-bottom:14px">
+        <tr><td>Эхний бэлэн</td><td class="num">${fmt(S.shift.startCash)}</td></tr>
+        <tr><td>Бэлэн борлуулалт</td><td class="num">${fmt(cash)}</td></tr>
+        <tr><td>Карт борлуулалт</td><td class="num">${fmt(card)}</td></tr>
+        <tr><td><b>Кассанд байх ёстой</b></td><td class="num"><b>${fmt(exp)}</b></td></tr>
+      </table>
+      <div class="form-row"><div><label>Бодит тоолсон бэлэн мөнгө ₮</label><input type="number" id="shActual" min="0" value="${exp}"></div></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn ghost" onclick="closeOverlay('shiftOverlay')">Болих</button>
+        <button class="btn danger" onclick="closeShift()">Хаах</button></div>`;
+  }
+  document.getElementById('shiftOverlay').classList.add('open');
+}
+function openShift(){
+  S.shift={id:++S.seq.shift,openedAt:Date.now(),startCash:+document.getElementById('shStart').value||0};
+  save();closeOverlay('shiftOverlay');renderShift();
+}
+function closeShift(){
+  const cash=shiftCash(S.shift),card=shiftCard(S.shift);
+  const expected=S.shift.startCash+cash;
+  const actual=+document.getElementById('shActual').value||0;
+  S.shifts.push({...S.shift,closedAt:Date.now(),cash,card,expected,actual,diff:actual-expected});
+  S.shift=null;save();closeOverlay('shiftOverlay');renderAll();
+}
+
+/* ================= inventory ================= */
+function renderInv(){
+  const t=document.getElementById('invTable');
+  t.innerHTML=`<tr><th>Нэр</th><th>Ангилал</th><th class="num">Үнэ</th><th class="num">Өртөг</th><th class="num">Үлдэгдэл</th><th class="num">Үлд. өртөг</th><th></th></tr>`+
+    S.products.map(p=>`<tr>
+      <td>${esc(p.name)} ${p.stock<=p.min?'<span class="badge" style="background:#fee2e2;color:#b91c1c">Дуусаж байна</span>':''}</td>
+      <td>${esc(p.cat)}</td>
+      <td class="num">${fmt(p.price)}</td>
+      <td class="num">${fmt(p.cost)}</td>
+      <td class="num">${p.stock} ${esc(p.unit||'')}</td>
+      <td class="num">${fmt(p.stock*p.cost)}</td>
+      <td style="white-space:nowrap;text-align:right">
+        <button class="btn sm green" onclick="stockIn(${p.id})">+ Орлого</button>
+        <button class="btn sm ghost" onclick="openProdModal(${p.id})">Засах</button>
+        <button class="btn sm danger" onclick="delProduct(${p.id})">✕</button>
+      </td></tr>`).join('');
+}
+function stockIn(id){
+  const p=S.products.find(x=>x.id===id);if(!p)return;
+  const n=prompt(`"${p.name}" — хэдэн ширхэг орлогодох вэ?`,'10');
+  const q=parseInt(n);if(!q||q<=0)return;
+  p.stock+=q;save();renderAll();
+}
+function openProdModal(id){
+  const p=id?S.products.find(x=>x.id===id):null;
+  document.getElementById('prodModalTitle').textContent=p?'Бараа засах':'Бараа нэмэх';
+  document.getElementById('pId').value=p?p.id:'';
+  document.getElementById('pName').value=p?p.name:'';
+  document.getElementById('pCat').value=p?p.cat:'';
+  document.getElementById('pUnit').value=p?(p.unit||''):'';
+  document.getElementById('pPrice').value=p?p.price:'';
+  document.getElementById('pCost').value=p?p.cost:'';
+  document.getElementById('pStock').value=p?p.stock:0;
+  document.getElementById('pMin').value=p?p.min:5;
+  document.getElementById('catList').innerHTML=cats().slice(1).map(c=>`<option value="${esc(c)}">`).join('');
+  document.getElementById('prodOverlay').classList.add('open');
+}
+function saveProduct(){
+  const name=document.getElementById('pName').value.trim();
+  if(!name){alert('Нэр оруулна уу');return;}
+  const d={name,cat:document.getElementById('pCat').value.trim()||'Бусад',unit:document.getElementById('pUnit').value.trim(),
+    price:+document.getElementById('pPrice').value||0,cost:+document.getElementById('pCost').value||0,
+    stock:+document.getElementById('pStock').value||0,min:+document.getElementById('pMin').value||0};
+  const id=document.getElementById('pId').value;
+  if(id){Object.assign(S.products.find(x=>x.id==id),d);}
+  else{S.products.push({id:++S.seq.prod,...d});}
+  save();closeOverlay('prodOverlay');renderAll();
+}
+function delProduct(id){
+  const p=S.products.find(x=>x.id===id);
+  if(!confirm(`"${p.name}" барааг устгах уу?`))return;
+  S.products=S.products.filter(x=>x.id!==id);save();renderAll();
+}
+
+/* ================= finance ================= */
+function sumSales(list){return list.reduce((a,s)=>a+s.total,0);}
+function sumCOGS(list){return list.reduce((a,s)=>a+s.items.reduce((b,i)=>b+i.cost*i.qty,0),0);}
+function renderFin(){
+  const td=todayStr();
+  const sToday=S.sales.filter(s=>dstr(s.ts)===td);
+  const eToday=S.expenses.filter(e=>e.date===td);
+  const rev=sumSales(sToday),exp=eToday.reduce((a,e)=>a+e.amt,0);
+  const cash=sumSales(sToday.filter(s=>s.method==='cash')),card=rev-cash;
+  document.getElementById('finStats').innerHTML=`
+    <div class="stat"><div class="s-label">Өнөөдрийн орлого</div><div class="s-value">${fmt(rev)}</div></div>
+    <div class="stat"><div class="s-label">Бэлэн / Карт</div><div class="s-value" style="font-size:16px">${fmt(cash)} / ${fmt(card)}</div></div>
+    <div class="stat"><div class="s-label">Гүйлгээний тоо</div><div class="s-value">${sToday.length}</div></div>
+    <div class="stat"><div class="s-label">Өнөөдрийн зарлага</div><div class="s-value neg">${fmt(exp)}</div></div>
+    <div class="stat"><div class="s-label">Цэвэр (орлого − зарлага)</div><div class="s-value ${rev-exp>=0?'pos-neg':'neg'}">${fmt(rev-exp)}</div></div>`;
+  const et=document.getElementById('expTable');
+  const exps=[...S.expenses].sort((a,b)=>b.id-a.id).slice(0,15);
+  et.innerHTML=`<tr><th>Огноо</th><th>Ангилал</th><th>Тайлбар</th><th class="num">Дүн</th><th></th></tr>`+
+    (exps.map(e=>`<tr><td>${e.date}</td><td>${esc(e.cat)}</td><td>${esc(e.note||'')}</td><td class="num neg">${fmt(e.amt)}</td>
+      <td style="text-align:right"><button class="btn sm danger" onclick="delExpense(${e.id})">✕</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Зарлага алга</td></tr>');
+  const st=document.getElementById('salesTable');
+  const ss=[...S.sales].sort((a,b)=>b.id-a.id).slice(0,15);
+  st.innerHTML=`<tr><th>№</th><th>Цаг</th><th>Бараа</th><th>Төлбөр</th><th class="num">Дүн</th><th></th></tr>`+
+    (ss.map(s=>`<tr><td>${s.id}</td><td>${dstr(s.ts)} ${tstr(s.ts)}</td>
+      <td>${s.items.map(i=>esc(i.name)+'×'+i.qty).join(', ')}</td>
+      <td><span class="badge ${s.method}">${s.method==='cash'?'Бэлэн':'Карт'}</span></td>
+      <td class="num">${fmt(s.total)}</td>
+      <td style="text-align:right;white-space:nowrap"><button class="btn sm ghost" onclick="reprint(${s.id})">🧾</button> <button class="btn sm danger" onclick="voidSale(${s.id})">✕</button></td></tr>`).join('')||'<tr><td colspan="6" class="empty">Борлуулалт алга</td></tr>');
+}
+function reprint(id){const s=S.sales.find(x=>x.id===id);if(s)showReceipt(s);}
+function addExpense(){
+  const amt=+document.getElementById('expAmt').value;
+  if(!amt||amt<=0){alert('Дүн оруулна уу');return;}
+  S.expenses.push({id:++S.seq.exp,date:document.getElementById('expDate').value||todayStr(),
+    cat:document.getElementById('expCat').value,amt,note:document.getElementById('expNote').value.trim()});
+  document.getElementById('expAmt').value='';document.getElementById('expNote').value='';
+  save();renderAll();
+}
+function delExpense(id){if(!confirm('Устгах уу?'))return;S.expenses=S.expenses.filter(e=>e.id!==id);save();renderAll();}
+
+/* ================= reports ================= */
+function repRange(){
+  const f=document.getElementById('repFrom').value,t=document.getElementById('repTo').value;
+  return [f||'0000-01-01',t||'9999-12-31'];
+}
+function renderReports(){
+  const [f,t]=repRange();
+  const sales=S.sales.filter(s=>{const d=dstr(s.ts);return d>=f&&d<=t;});
+  const exps=S.expenses.filter(e=>e.date>=f&&e.date<=t);
+  const rev=sumSales(sales),cogs=sumCOGS(sales),expSum=exps.reduce((a,e)=>a+e.amt,0);
+  const gross=rev-cogs,net=gross-expSum;
+  document.getElementById('repStats').innerHTML=`
+    <div class="stat"><div class="s-label">Нийт орлого</div><div class="s-value">${fmt(rev)}</div></div>
+    <div class="stat"><div class="s-label">Барааны өртөг (COGS)</div><div class="s-value neg">${fmt(cogs)}</div></div>
+    <div class="stat"><div class="s-label">Нийт ашиг (Gross)</div><div class="s-value ${gross>=0?'pos-neg':'neg'}">${fmt(gross)}</div></div>
+    <div class="stat"><div class="s-label">Үйл ажиллагааны зарлага</div><div class="s-value neg">${fmt(expSum)}</div></div>
+    <div class="stat"><div class="s-label">Цэвэр ашиг</div><div class="s-value ${net>=0?'pos-neg':'neg'}">${fmt(net)}</div></div>
+    <div class="stat"><div class="s-label">Дундаж чек</div><div class="s-value">${fmt(sales.length?rev/sales.length:0)}</div></div>`;
+  const byDay={};
+  sales.forEach(s=>{const d=dstr(s.ts);byDay[d]=(byDay[d]||0)+s.total;});
+  let days=Object.keys(byDay).sort().slice(-14);
+  if(!days.length){const c=document.getElementById('repChart');c.innerHTML='<div class="empty" style="width:100%">Мэдээлэл алга</div>';}
+  else{
+    const max=Math.max(...days.map(d=>byDay[d]));
+    document.getElementById('repChart').innerHTML=days.map(d=>`
+      <div class="bar-col" title="${d}: ${fmt(byDay[d])}">
+        <div style="font-size:10px;color:var(--muted)">${fmt(byDay[d]).replace('₮','')}</div>
+        <div class="bar" style="height:${Math.max(2,byDay[d]/max*100)}px"></div>
+        <div class="bar-lbl">${d.slice(5)}</div>
+      </div>`).join('');
+  }
+  const agg={};
+  sales.forEach(s=>s.items.forEach(i=>{agg[i.name]=agg[i.name]||{q:0,r:0};agg[i.name].q+=i.qty;agg[i.name].r+=i.price*i.qty;}));
+  const top=Object.entries(agg).sort((a,b)=>b[1].r-a[1].r).slice(0,10);
+  document.getElementById('topTable').innerHTML=`<tr><th>Бараа</th><th class="num">Тоо</th><th class="num">Орлого</th></tr>`+
+    (top.map(([n,v])=>`<tr><td>${esc(n)}</td><td class="num">${v.q}</td><td class="num">${fmt(v.r)}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">Мэдээлэл алга</td></tr>');
+  document.getElementById('shiftTable').innerHTML=`<tr><th>№</th><th>Нээсэн</th><th>Хаасан</th><th class="num">Бэлэн</th><th class="num">Карт</th><th class="num">Байх ёстой</th><th class="num">Тоолсон</th><th class="num">Зөрүү</th></tr>`+
+    ([...S.shifts].reverse().map(sh=>`<tr><td>${sh.id}</td><td>${dstr(sh.openedAt)} ${tstr(sh.openedAt)}</td><td>${dstr(sh.closedAt)} ${tstr(sh.closedAt)}</td>
+      <td class="num">${fmt(sh.cash)}</td><td class="num">${fmt(sh.card)}</td><td class="num">${fmt(sh.expected)}</td><td class="num">${fmt(sh.actual)}</td>
+      <td class="num ${sh.diff<0?'neg':'pos-neg'}">${fmt(sh.diff)}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">Ээлж хаагдаагүй байна</td></tr>');
+}
+function exportCSV(){
+  const [f,t]=repRange();
+  const sales=S.sales.filter(s=>{const d=dstr(s.ts);return d>=f&&d<=t;});
+  let csv='﻿Баримт№,Огноо,Цаг,Бараа,Тоо,Нэгж үнэ,Дүн,Хөнгөлөлт%,Төлбөр,Тэмдэглэл\n';
+  sales.forEach(s=>s.items.forEach(i=>{
+    csv+=`${s.id},${dstr(s.ts)},${tstr(s.ts)},"${i.name}",${i.qty},${i.price},${i.price*i.qty},${s.disc||0},${s.method==='cash'?'Бэлэн':'Карт'},"${(s.note||'').replace(/"/g,'""')}"\n`;
+  }));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`борлуулалт_${f}_${t}.csv`;a.click();
+}
+
+/* ================= settings ================= */
+function saveSettings(){
+  S.settings.name=document.getElementById('setName').value.trim()||'Миний бар';
+  const pb=document.getElementById('setPinB').value.trim(),pm=document.getElementById('setPinM').value.trim();
+  const p=pins();if(pb)p.barmen=pb;if(pm)p.manager=pm;
+  document.getElementById('setPinB').value='';document.getElementById('setPinM').value='';
+  save();alert('Хадгалагдлаа');
+}
+function exportJSON(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));
+  a.download=`bar-erp-backup-${todayStr()}.json`;a.click();
+}
+function importJSON(inp){
+  const file=inp.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.products)throw 0;S=d;save();renderAll();alert('Сэргээлээ');}catch(e){alert('Буруу файл');}};
+  r.readAsText(file);inp.value='';
+}
+function resetData(){
+  if(!confirm('Бүх өгөгдөл (борлуулалт, зарлага, бараа) устана. Итгэлтэй байна уу?'))return;
+  if(!confirm('Дахин асууя: үнэхээр бүгдийг устгах уу?'))return;
+  S=JSON.parse(JSON.stringify(seed));save();renderAll();
+}
+
+/* ================= init ================= */
+function renderAll(){renderShift();renderPOS();renderInv();renderFin();renderReports();document.getElementById('setName').value=S.settings.name;}
+document.getElementById('expDate').value=todayStr();
+(function(){const d=new Date();d.setDate(d.getDate()-13);
+  document.getElementById('repFrom').value=d.toISOString().slice(0,10);
+  document.getElementById('repTo').value=todayStr();})();
+renderAll();
+if(role){applyRole();}
+else{document.getElementById('loginOverlay').classList.add('open');selectRole('barmen');}
+/* PWA: сервертэй (http/https) үед offline кэш идэвхжүүлнэ; file:// дээр хэрэггүй */
+if('serviceWorker' in navigator&&(location.protocol==='https:'||['localhost','127.0.0.1'].includes(location.hostname))){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
